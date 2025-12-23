@@ -141,6 +141,7 @@ func main() {
 	cart := &Cartridge{
 		PRG:    data[prgStart:prgEnd], // Código del juego
 		Mirror: mirror,                // Configuración de video
+		WRAM:   make([]byte, 8192),    // 8KB Work RAM
 	}
 
 	// Inicializar la lógica del Mapper específico según el ID

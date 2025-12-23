@@ -79,14 +79,8 @@ type PPU struct {
 	// Buffer de imagen para Ebiten (backbuffer)
 	FrameBuffer [256 * 240]color.RGBA
 
-	// Double Buffering para CHR-RAM
-	// Algunos juegos (como Contra o videoconsolas piratas) usan CHR-RAM en lugar de ROM.
-	// Escriben los gráficos en RAM durante el juego.
-	// Si leemos esta RAM mientras la CPU escribe, vemos "glitches" o parpadeos (tearing).
-	// Solución: Usar dos buffers. Uno se lee (Render) y otro se escribe (CPU).
-	chrReadBuffer  []byte
-	chrWriteBuffer []byte // CPU escribe aquí
-	chrDirty       bool   // Hubo escritura en este frame?
+	// Double Buffering ELIMINADO:
+	// Causaba ghosting en juegos como Contra. Ahora usamos acceso directo.
 
 	// Callbacks
 	TriggerNMI func() // Para avisar a la CPU que ejecute la NMI
@@ -99,13 +93,15 @@ func NewPPU(cart *Cartridge) *PPU {
 		Cycle:    0,
 	}
 
-	// Inicializar buffers si es CHR-RAM
-	if cart.IsCHRRAM && len(cart.CHR) > 0 {
-		ppu.chrReadBuffer = make([]byte, 8192)
-		ppu.chrWriteBuffer = make([]byte, 8192)
-		copy(ppu.chrReadBuffer, cart.CHR)
-		copy(ppu.chrWriteBuffer, cart.CHR)
-	}
+	// Inicializar buffers si es CHR-RAM (YA NO NECESARIO con acceso directo)
+	/*
+		if cart.IsCHRRAM && len(cart.CHR) > 0 {
+			ppu.chrReadBuffer = make([]byte, 8192)
+			ppu.chrWriteBuffer = make([]byte, 8192)
+			copy(ppu.chrReadBuffer, cart.CHR)
+			copy(ppu.chrWriteBuffer, cart.CHR)
+		}
+	*/
 
 	return ppu
 }
@@ -125,11 +121,14 @@ func (p *PPU) Tick() bool {
 			p.Sprite0Hit = false
 			p.SpriteOverflow = false
 
-			// Intercambiar buffers de CHR-RAM si hubo cambios (evita glitches visuales)
-			if p.chrDirty && len(p.chrWriteBuffer) > 0 {
-				copy(p.chrReadBuffer, p.chrWriteBuffer)
-				p.chrDirty = false
-			}
+			// Intercambiar buffers de CHR-RAM (ELIMINADO)
+			/*
+				if p.chrDirty && len(p.chrWriteBuffer) > 0 {
+					copy(p.chrReadBuffer, p.chrWriteBuffer)
+					p.chrDirty = false
+				}
+			*/
+
 		}
 	}
 
@@ -558,9 +557,10 @@ func (p *PPU) ppuFetch(addr uint16) byte {
 		}
 
 		if p.Cart.IsCHRRAM {
-			// Leer del buffer de lectura (Double Buffering)
-			return p.chrReadBuffer[finalAddr&0x1FFF]
+			// Leer directamente de la memoria CHR del cartucho
+			return p.Cart.CHR[finalAddr&0x1FFF]
 		}
+
 		if finalAddr < len(p.Cart.CHR) {
 			return p.Cart.CHR[finalAddr]
 		}
@@ -580,9 +580,10 @@ func (p *PPU) ppuRead(addr uint16) byte {
 		}
 
 		if p.Cart.IsCHRRAM {
-			// CPU lee del buffer de ESCRITURA (lo más fresco)
-			return p.chrWriteBuffer[finalAddr&0x1FFF]
+			// CPU lee directamente
+			return p.Cart.CHR[finalAddr&0x1FFF]
 		}
+
 		if finalAddr < len(p.Cart.CHR) {
 			// CHR-ROM
 			return p.Cart.CHR[finalAddr]
@@ -610,10 +611,10 @@ func (p *PPU) ppuWrite(addr uint16, data byte) {
 	if addr < 0x2000 {
 		finalAddr := p.Cart.Mapper.ReadCHR(addr)
 		if p.Cart.IsCHRRAM {
-			// Escritura en buffer de ESCRITURA
-			p.chrWriteBuffer[finalAddr&0x1FFF] = data
-			p.chrDirty = true // Marcar para swap en VBlank
+			// Escritura directa en CHR
+			p.Cart.CHR[finalAddr&0x1FFF] = data
 		}
+
 		return
 	}
 	if addr < 0x3F00 {

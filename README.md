@@ -26,9 +26,9 @@ Hemos construido un sistema capaz de ejecutar juegos comerciales icónicos y com
 *   **Sistema de Cartuchos y Mappers**: Soporte para múltiples tipos de hardware de cartucho.
     *   **Mapper 0 (NROM)**: *Super Mario Bros*, *Donkey Kong*.
     *   **Mapper 1 (MMC1)**: *Prince of Persia*, *Metroid*, *Zelda*. (Incluye soporte de carga serial).
-    *   **Mapper 2 (UxROM)**: *Contra*, *Castlevania*.
+    *   **Mapper 2 (UxROM)**: *Contra* (Sin ghosting de sprites), *Castlevania*.
     *   **Mapper 3 (CNROM)**: *Cybernoid*.
-    *   **Mapper 4 (MMC3)**: *Super Mario Bros 3*. (Soporte avanzado de IRQ por Scanline y Bank Switching).
+    *   **Mapper 4 (MMC3)**: *Super Mario Bros 3* (Soporte de WRAM y Scanline IRQ).
 *   **Visualización**: Uso de la librería **Ebiten** para renderizado de buffers de píxeles modernos a 60 FPS.
 
 ## 🔇 Nota sobre el Audio
@@ -56,7 +56,12 @@ Puedes encontrarlo en el directorio `docs/books/`.
 12. [Mappers Avanzados: MMC1](docs/books/capitulo_12.md)
 13. [Mappers Avanzados: MMC3](docs/books/capitulo_13.md)
 14. [Entrada y Controladores](docs/books/capitulo_14.md)
+14. [Entrada y Controladores](docs/books/capitulo_14.md)
 15. [Conclusión](docs/books/capitulo_15.md)
+
+### Extras:
+*   [Lecciones Aprendidas y Robadas](LECCIONES_APRENDIDAS_ROBADAS.md): Documento sobre los fixes específicos para SMB3 y Contra.
+
 
 ## 🐛 Issues Conocidos
 
@@ -86,3 +91,7 @@ Otros que vi que me parecieron mejores que este :P
 * [https://leeteng.com/blog/content/writing-nes-emulator](https://leeteng.com/blog/content/writing-nes-emulator)
 * [https://github.com/nwidger/nintengo](https://github.com/nwidger/nintengo)
 * [https://github.com/maxpoletaev/dendy](https://github.com/maxpoletaev/dendy)
+
+## ❤️ Agradecimientos
+
+Un agradecimiento especial a la comunidad de **Nesdev** por mantener viva la documentación técnica que hizo posible corregir los bugs de Super Mario Bros 3 y Contra. Sin esa wiki, este emulador sería solo una pantalla negra.

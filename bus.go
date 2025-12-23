@@ -43,6 +43,14 @@ func (b *Bus) Read(addr uint16) byte {
 		// En hardware real devuelve estado del Joy 2. Aquí devolvemos 0x40 (frame irq flag off).
 		return 0x40
 
+	// $6000 - $7FFF: WRAM / PRG-RAM (8KB)
+	// Memoria de trabajo extra que traen algunos cartuchos (como SMB3, Zelda).
+	case addr >= 0x6000 && addr < 0x8000:
+		if len(b.PPU.Cart.WRAM) > 0 {
+			return b.PPU.Cart.WRAM[addr-0x6000]
+		}
+		return 0
+
 	// $8000 - $FFFF: Espacio del Cartucho (PRG-ROM)
 	case addr >= 0x8000:
 		// Aquí está el código del juego. Como el espacio de direcciones es limitado (32KB),
@@ -91,6 +99,12 @@ func (b *Bus) Write(addr uint16, data byte) {
 	case addr == 0x4016:
 		if b.Joy1 != nil {
 			b.Joy1.Write(data)
+		}
+
+	// $6000 - $7FFF: WRAM / PRG-RAM (8KB)
+	case addr >= 0x6000 && addr < 0x8000:
+		if len(b.PPU.Cart.WRAM) > 0 {
+			b.PPU.Cart.WRAM[addr-0x6000] = data
 		}
 
 	// $8000 - $FFFF: Escritura en Cartucho (Mapper)

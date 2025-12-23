@@ -15,6 +15,7 @@ const (
 type Cartridge struct {
 	PRG      []byte     // Memoria de Programa (Código del juego, conectado a CPU Bus $8000+)
 	CHR      []byte     // Memoria de Caracteres (Gráficos/Tiles, conectado a PPU Bus $0000+)
+	WRAM     []byte     // Work RAM (8KB) en $6000-$7FFF. Usado por juegos como SMB3.
 	Mirror   MirrorMode // Modo de espejo hardcodeado en el cartucho (soldadura)
 	Mapper   Mapper     // El chip Mapper (MMC1, MMC3, etc) que controla el acceso a memoria
 	IsCHRRAM bool       // Indica si el cartucho usa RAM para gráficos (escribible) en vez de ROM
