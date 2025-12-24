@@ -208,7 +208,7 @@ func (p *PPU) renderPixel() {
 		// Sprite con prioridad "detrás del fondo".
 		// Si el fondo es transparente (es el color de fondo universal), se ve el sprite.
 		// Si el fondo es opaco, el fondo tapa al sprite.
-		if bgColor != SystemPalette[p.ppuFetch(0x3F00)] {
+		if bgColor != SystemPalette[p.ppuFetch(0x3F00)&0x3F] {
 			finalColor = bgColor
 		} else {
 			finalColor = sprColor
@@ -225,7 +225,7 @@ func (p *PPU) renderPixel() {
 func (p *PPU) getBackgroundPixel(x, y int) color.RGBA {
 	// Si el renderizado de fondo está desactivado en PPUMASK
 	if p.Mask&0x08 == 0 {
-		return SystemPalette[p.ppuFetch(0x3F00)] // Color universal
+		return SystemPalette[p.ppuFetch(0x3F00)&0x3F] // Color universal
 	}
 
 	// getBackgroundPixel usa VramAddr (Loopy V) que ya contiene el scroll integrado.
@@ -280,7 +280,7 @@ func (p *PPU) getBackgroundPixel(x, y int) color.RGBA {
 
 	// Si es transparente (0), devolver color universal
 	if colorBit == 0 {
-		return SystemPalette[p.ppuFetch(0x3F00)]
+		return SystemPalette[p.ppuFetch(0x3F00)&0x3F]
 	}
 
 	// 4. Fetch Atributo: Qué paleta usar (0-3) para este bloque de 16x16
@@ -294,7 +294,7 @@ func (p *PPU) getBackgroundPixel(x, y int) color.RGBA {
 
 	// 5. Componer dirección final de paleta y leer color RGB
 	pAddr := 0x3F00 + uint16(paletteIdx)*4 + uint16(colorBit)
-	return SystemPalette[p.ppuFetch(pAddr)]
+	return SystemPalette[p.ppuFetch(pAddr)&0x3F]
 }
 
 // checkSprite0Hit verifica colisión pixel-perfecta para el Sprite 0
@@ -460,7 +460,7 @@ func (p *PPU) getSpritePixel(x, y int) (color.RGBA, bool, bool) {
 		// Bit 5 de atributo: Prioridad (0=Frente, 1=Detrás)
 		priority := s.Attr&0x20 != 0
 
-		return SystemPalette[p.ppuFetch(pAddr)], priority, true
+		return SystemPalette[p.ppuFetch(pAddr)&0x3F], priority, true
 	}
 
 	return color.RGBA{}, false, false
