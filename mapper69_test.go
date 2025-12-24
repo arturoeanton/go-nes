@@ -27,14 +27,14 @@ func TestMapper69_IRQ_Counter(t *testing.T) {
 	m.Write(0xA000, 0x00)
 
 	// Verificar estado inicial (no activo)
-	if m.irqActive {
+	if m.irqPending {
 		t.Error("IRQ no debería estar activa al inicio")
 	}
 
 	// 2. Hacer Tick 15 veces (Contador baja de 16 a 1)
 	for i := 0; i < 15; i++ {
 		m.Tick()
-		if m.irqActive {
+		if m.irqPending {
 			t.Errorf("IRQ se disparó prematuramente en tick %d", i)
 		}
 	}
@@ -44,12 +44,12 @@ func TestMapper69_IRQ_Counter(t *testing.T) {
 	// Osea cuando Counter == 0, siguiente tick -> FFFF y IRQ.
 
 	m.Tick() // 1 -> 0
-	if m.irqActive {
+	if m.irqPending {
 		t.Error("IRQ se disparó en contador 0 (debería ser en underflow)")
 	}
 
 	m.Tick() // 0 -> FFFF (Underflow!)
-	if !m.irqActive {
+	if !m.irqPending {
 		t.Error("IRQ NO se disparó tras underflow del contador")
 	}
 
@@ -63,8 +63,8 @@ func TestMapper69_IRQ_Counter(t *testing.T) {
 	m.Write(0x8000, 0x0D)
 	m.Write(0xA000, 0x00)
 
-	if m.irqActive {
-		t.Error("Escribir comando D no limpió el flag irqActive")
+	if m.irqPending {
+		t.Error("Escribir comando D no limpió el flag irqPending")
 	}
 	if m.IRQState() {
 		t.Error("IRQState activo tras acknowledge")
