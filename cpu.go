@@ -1,8 +1,7 @@
 package main
 
-import (
-	"log"
-)
+// 	"log" -> Removing import log as it is not needed here anymore if we use Log* functions from main package (assuming they are in same package)
+// "log"
 
 // ==========================================
 // DEFINICIÓN DE FLAGS (Registro de Estado P)
@@ -50,7 +49,7 @@ func (cpu *CPU) Reset() {
 	low := uint16(cpu.Bus.Read(0xFFFC))
 	high := uint16(cpu.Bus.Read(0xFFFD))
 	cpu.PC = (high << 8) | low
-	log.Printf("CPU Reset: PC inicializado en $%04X", cpu.PC)
+	LogInfo("CPU Reset: PC inicializado en $%04X", cpu.PC)
 }
 
 // NMI: Non-Maskable Interrupt (Interrupción No Enmascarable).
@@ -60,7 +59,7 @@ func (cpu *CPU) Reset() {
 // Es la interrupción más importante en la NES. La PPU la dispara
 // 60 veces por segundo (VBlank) para que el juego actualice gráficos.
 func (cpu *CPU) NMI() {
-	log.Println("CPU NMI Triggered")
+	LogDebug("CPU NMI Triggered")
 	cpu.push16(cpu.PC)         // Guardar dónde estábamos
 	cpu.push(cpu.P & ^byte(B)) // Guardar estado (sin bit B)
 	cpu.P |= I                 // Deshabilitar interrupciones IRQ durante la NMI
@@ -361,12 +360,18 @@ func (c *CPU) Step() int {
 
 	opcode := c.Bus.Read(c.PC)
 	cycles := cycleTable[opcode] // Buscar ciclos base en tabla
+
+	// TRACE DEBUGGING:
+	// log.Printf("PC:%04X Op:%02X A:%02X X:%02X Y:%02X P:%02X SP:%02X", c.PC, opcode, c.A, c.X, c.Y, c.P, c.SP)
+	// Output format compatible with standard logs for comparison if needed
+	// fmt.Printf("%04X  %02X A:%02X X:%02X Y:%02X P:%02X SP:%02X Cyc:%d\n", c.PC, opcode, c.A, c.X, c.Y, c.P, c.SP, c.Bus.PPU.Cycle)
+
 	c.PC++
 
 	var extraCycles int
 
 	if c.PC < 0x8000 {
-		log.Printf("WARNING: PC executing from Low Memory: $%04X (Opcode: %02X)", c.PC, opcode)
+		LogError("WARNING: PC executing from Low Memory: $%04X (Opcode: %02X)", c.PC, opcode)
 	}
 
 	switch opcode {

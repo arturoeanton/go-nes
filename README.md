@@ -33,10 +33,23 @@ Hemos construido un sistema capaz de ejecutar juegos comerciales icónicos y com
     *   **Mapper 7 (AxROM)**: *Battletoads*.
     *   **Mapper 69 (FME-7)**: *Batman: Return of the Joker* (Soporte de IRQ preciso por ciclos de CPU).
 *   **Visualización**: Uso de la librería **Ebiten** para renderizado de buffers de píxeles modernos a 60 FPS.
+*   **APU (Audio Processing Unit)**: Implementación experimental de audio.
+    *   Canales Pulse 1 y 2 (ondas cuadradas con envolventes y sweep).
+    *   Canal Triangle (onda triangular para tonos bajos/suaves).
+    *   Canal Noise (ruido pseudoaleatorio para efectos).
+    *   Frame Sequencer para timing de 240Hz/120Hz.
+    *   Integración con Ebiten Audio a 44100Hz.
 
-## 🔇 Nota sobre el Audio
+## 🔊 Nota sobre el Audio
 
-Por razones de simplicidad educativa y para mantener el foco en la lógica central de la computación (CPU/PPU) y el manejo de memoria, **no se ha implementado el APU (Audio Processing Unit)**. El emulador es totalmente silencioso. Esto permite estudiar el código sin la complejidad adicional de la generación de ondas de sonido y sincronización de audio.
+Inicialmente, este proyecto **no iba a implementar el APU** para mantener la simplicidad educativa. Sin embargo, terminamos implementándolo de forma **experimental** porque el audio es parte fundamental de la experiencia NES. La implementación actual es funcional pero básica:
+
+- **Habilitado con el flag `-sn`**: `go run . rom.nes -sn`
+- Los canales Pulse, Triangle y Noise generan sonido.
+- El canal DMC (Delta Modulation) no está implementado completamente.
+- Puede haber artefactos de audio en algunos juegos.
+
+Para estudiar emulación de audio, recomendamos leer el [Capítulo 16: APU](docs/books/capitulo_16.md) del libro.
 
 ## 📚 Documentación Educativa
 
@@ -60,7 +73,8 @@ Puedes encontrarlo en el directorio `docs/books/`.
 13. [Mappers Avanzados: MMC3](docs/books/capitulo_13.md)
 14. [Entrada y Controladores](docs/books/capitulo_14.md)
 14. [Entrada y Controladores](docs/books/capitulo_14.md)
-15. [Conclusión](docs/books/capitulo_15.md)
+15. [APU: Audio Processing Unit](docs/books/capitulo_16.md)
+16. [Conclusión](docs/books/capitulo_17.md)
 
 ### Extras:
 *   [Lecciones Aprendidas y Robadas](LECCIONES_APRENDIDAS_ROBADAS.md): Documento sobre los fixes específicos para SMB3 y Contra.

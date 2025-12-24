@@ -69,19 +69,19 @@ func (m *Mapper69) Write(addr uint16, data byte) {
 	if addr >= 0x8000 && addr <= 0x9FFF {
 		// Command Register ($8000)
 		m.commandReg = data & 0x0F
-		// fmt.Printf("Mapper 69 Select Cmd: %X\n", m.commandReg) // Debug Select
+		//fmt.Printf("Mapper 69 Select Cmd: %X\n", m.commandReg) // Debug Select
 	} else if addr >= 0xA000 && addr <= 0xBFFF {
 		// Parameter Register ($A000)
 		m.runCommand(data)
 		if m.commandReg == 0xD {
-			fmt.Printf("Mapper 69 IRQ Ctrl. Data=%02X Val=%04X Act=%v En=%v\n", data, m.irqCounter, m.irqActive, m.irqEnabled)
+			//fmt.Printf("Mapper 69 IRQ Ctrl. Data=%02X Val=%04X Act=%v En=%v\n", data, m.irqCounter, m.irqActive, m.irqEnabled)
 		}
 	}
 }
 
 func (m *Mapper69) runCommand(data byte) {
 	cmd := m.commandReg
-	fmt.Printf("Mapper 69 Cmd: %X Data: %X\n", cmd, data) // Debug
+	//fmt.Printf("Mapper 69 Cmd: %X Data: %X\n", cmd, data) // Debug
 	switch {
 	case cmd <= 0x7: // CHR Banks 0-7 ($0000 - $1C00, 1KB chunks)
 		m.chrBanksRegs[cmd] = int(data)
@@ -115,7 +115,7 @@ func (m *Mapper69) runCommand(data byte) {
 		m.irqEnabled = (data & 0x01) != 0
 		m.irqActive = false // Acknowledge IRQ
 		if data != 0 {
-			fmt.Printf("Mapper 69 IRQ Values: Cmd=D Data=%X Enabled=%v CounterEnabled=%v\n", data, m.irqEnabled, m.irqCounterEnabled)
+			//fmt.Printf("Mapper 69 IRQ Values: Cmd=D Data=%X Enabled=%v CounterEnabled=%v\n", data, m.irqEnabled, m.irqCounterEnabled)
 		}
 
 	case cmd == 0xE: // IRQ Counter Low Byte

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -73,35 +71,35 @@ func (k *KeyboardController) getSnapshot() byte {
 	var state byte
 	if ebiten.IsKeyPressed(ebiten.KeyZ) {
 		state |= 1 << 0
-		log.Println("A presionado")
+		//log.Println("A presionado")
 	} // Tecla Z = Botón A
 	if ebiten.IsKeyPressed(ebiten.KeyX) {
 		state |= 1 << 1
-		log.Println("B presionado")
+		//log.Println("B presionado")
 	} // Tecla X = Botón B
 	if ebiten.IsKeyPressed(ebiten.KeyShift) {
 		state |= 1 << 2
-		log.Println("Select presionado")
+		//log.Println("Select presionado")
 	} // Shift = Select
 	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
 		state |= 1 << 3
-		log.Println("Start presionado")
+		//log.Println("Start presionado")
 	} // Enter = Start
 	if ebiten.IsKeyPressed(ebiten.KeyUp) {
 		state |= 1 << 4
-		log.Println("Up presionado")
+		//log.Println("Up presionado")
 	} // Flecha Arriba
 	if ebiten.IsKeyPressed(ebiten.KeyDown) {
 		state |= 1 << 5
-		log.Println("Down presionado")
+		//log.Println("Down presionado")
 	} // Flecha Abajo
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		state |= 1 << 6
-		log.Println("Left presionado")
+		//log.Println("Left presionado")
 	} // Flecha Izquierda
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		state |= 1 << 7
-		log.Println("Right presionado")
+		//log.Println("Right presionado")
 	} // Flecha Derecha
 	return state
 }

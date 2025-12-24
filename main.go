@@ -6,23 +6,63 @@ import (
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
 // Constantes globales de resolución
 const (
 	ScreenWidth  = 256
 	ScreenHeight = 240
+	SampleRate   = 44100
+)
+
+// Variables globales para flags
+var (
+	flagVerbose      bool
+	flagSuperVerbose bool
+	flagSound        bool
 )
 
 // main es el punto de entrada del programa.
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Uso: go run . <archivo.nes>")
+	// Parsear argumentos manualmente para facilitar el uso
+	// Buscamos flags antes del nombre del archivo
+	args := []string{}
+	romPath := ""
+
+	for _, arg := range os.Args[1:] {
+		if arg == "-v" {
+			flagVerbose = true
+		} else if arg == "-vv" {
+			flagSuperVerbose = true
+		} else if arg == "-sn" {
+			flagSound = true
+		} else {
+			// Asumimos que es el archivo ROM
+			romPath = arg
+			args = append(args, arg)
+		}
+	}
+
+	if romPath == "" {
+		fmt.Println("Uso: go run . [-v] [-vv] [-sn] <archivo.nes>")
+		fmt.Println("  -v:  Informativo (Mappers, etc)")
+		fmt.Println("  -vv: Debug (Trace CPU - Lento)")
+		fmt.Println("  -sn: Activar sonido (Experimental)")
 		return
 	}
 
+	// Configurar Logger
+	logLevel := LevelError
+	if flagSuperVerbose {
+		logLevel = LevelDebug
+	} else if flagVerbose {
+		logLevel = LevelInfo
+	}
+	InitLogger(logLevel)
+
 	// Leer el archivo ROM completo a memoria
-	data, err := os.ReadFile(os.Args[1])
+	data, err := os.ReadFile(romPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,6 +92,9 @@ func main() {
 
 	// 2. Calcular dónde empiezan y terminan los datos en el archivo
 	prgStart := 16
+	if (flags6 & 0x04) != 0 {
+		prgStart += 512
+	}
 	prgEnd := prgStart + (prgBanks * 16384)
 	chrEnd := prgEnd + (chrBanks * 8192)
 
@@ -72,36 +115,36 @@ func main() {
 		// Mapper 1 (MMC1): Configurable, carga serial.
 		// Zelda, Metroid, Prince of Persia (hackeado o real).
 		cart.Mapper = NewMapper1(prgBanks, chrBanks)
-		log.Printf("Mapper 1 (MMC1) detectado para %s", os.Args[1])
+		LogInfo("Mapper 1 (MMC1) detectado para %s", romPath)
 	case 2:
 		// Mapper 2 (UxROM): Bank switching simple de PRG.
 		// Contra, Castlevania.
 		cart.Mapper = NewMapper2(prgBanks)
-		log.Printf("Mapper 2 (UxROM) detectado para %s", os.Args[1])
+		LogInfo("Mapper 2 (UxROM) detectado para %s", romPath)
 	case 3:
 		// Mapper 3 (CNROM): Bank switching de CHR (gráficos).
 		// Cybernoid, juegos con muchas animaciones de fondo.
 		cart.Mapper = NewMapper3(prgBanks)
-		log.Printf("Mapper 3 (CNROM) detectado para %s", os.Args[1])
+		LogInfo("Mapper 3 (CNROM) detectado para %s", romPath)
 	case 4:
 		// Mapper 4 (MMC3): El más avanzado de la era clásica.
 		// Super Mario Bros 3, Kirby. Soporta IRQ por Scanline.
 		// Nota: MMC3 usa bancos de CHR de 1KB, por eso multiplicamos por 8.
 		cart.Mapper = NewMapper4(prgBanks, chrBanks*8)
-		log.Printf("Mapper 4 (MMC3) detectado para %s", os.Args[1])
+		LogInfo("Mapper 4 (MMC3) detectado para %s", romPath)
 	case 7:
 		// Mapper 7 (AxROM): Battletoads.
 		// Bancos PRG 32KB, Mirroring por software.
 		cart.Mapper = NewMapper7(prgBanks)
-		log.Printf("Mapper 7 (AxROM) detectado para %s", os.Args[1])
+		LogInfo("Mapper 7 (AxROM) detectado para %s", romPath)
 	case 69:
 		// Mapper 69 (Sunsoft FME-7): Batman Return of the Joker.
 		// IRQ por ciclos de CPU, bancos CHR 1KB.
 		cart.Mapper = NewMapper69(prgBanks, chrBanks)
-		log.Printf("Mapper 69 (FME-7) detectado para %s", os.Args[1])
+		LogInfo("Mapper 69 (FME-7) detectado para %s", romPath)
 	default:
 		// Fallback de seguridad
-		log.Printf("ADVERTENCIA: Mapper %d no soportado plenamente. Usando Mapper 0.", mapperID)
+		LogError("ADVERTENCIA: Mapper %d no soportado plenamente. Usando Mapper 0.", mapperID)
 		cart.Mapper = NewMapper0(prgBanks)
 	}
 
@@ -112,7 +155,7 @@ func main() {
 		cart.CHR = data[prgEnd:chrEnd]
 		cart.IsCHRRAM = false
 	} else {
-		log.Println("CHR-RAM detectada (8KB). Activando Double Buffering para evitar glitches.")
+		LogInfo("CHR-RAM detectada (8KB). Activando Double Buffering para evitar glitches.")
 		cart.CHR = make([]byte, 8192)
 		cart.IsCHRRAM = true
 	}
@@ -137,6 +180,22 @@ func main() {
 
 	// 6. Arrancar Motor Gráfico (Ebiten)
 	game := &Game{CPU: cpu, Bus: bus}
+
+	if flagSound {
+		// Init Audio (44100Hz)
+		game.audioCtx = audio.NewContext(44100)
+		stream := &AudioStream{AudioBuffer: apu.AudioBuffer}
+
+		// Crear player
+		player, err := game.audioCtx.NewPlayer(stream)
+		if err != nil {
+			LogError("Error al inicializar audio: %v", err)
+		} else {
+			player.Play()
+			game.player = player
+			LogInfo("Audio inicializado (Experimental)")
+		}
+	}
 	ebiten.SetWindowSize(ScreenWidth*2, ScreenHeight*2) // Escalar x2 para ver mejor
 	ebiten.SetWindowTitle("GoNES - Emulador Educativo")
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -144,7 +143,7 @@ func (p *PPU) Tick() bool {
 
 	// Scanline 241: Inicio de VBlank
 	if p.Scanline == 241 && p.Cycle == 1 {
-		fmt.Printf("PPU ENTER VBLANK @ Frame %d\n", p.Frame)
+
 		p.NmiOccurred = true
 		if p.NmiOutput {
 			nmiTriggered = true
@@ -194,7 +193,7 @@ func (p *PPU) renderPixel() {
 	}
 
 	// Obtener el color que aportaría el fondo en este punto
-	bgColor := p.getBackgroundPixel(x, y)
+	bgColor, bgOpaque := p.getBackgroundPixel(x, y)
 
 	// Obtener el color que aportaría un sprite en este punto
 	// Retorna también la prioridad (detrás/delante de fondo) y si hay sprite visible.
@@ -210,10 +209,10 @@ func (p *PPU) renderPixel() {
 		// Sprite con prioridad "detrás del fondo".
 		// Si el fondo es transparente (es el color de fondo universal), se ve el sprite.
 		// Si el fondo es opaco, el fondo tapa al sprite.
-		if bgColor != SystemPalette[p.ppuFetch(0x3F00)&0x3F] {
-			finalColor = bgColor
-		} else {
+		if !bgOpaque {
 			finalColor = sprColor
+		} else {
+			finalColor = bgColor
 		}
 	} else {
 		// Sprite con prioridad "frente al fondo". Siempre gana el sprite.
@@ -224,10 +223,11 @@ func (p *PPU) renderPixel() {
 }
 
 // getBackgroundPixel calcula el color del tile de fondo en (x,y)
-func (p *PPU) getBackgroundPixel(x, y int) color.RGBA {
+// Retorna el color y un booleano (true=opaco, false=transparente)
+func (p *PPU) getBackgroundPixel(x, y int) (color.RGBA, bool) {
 	// Si el renderizado de fondo está desactivado en PPUMASK
 	if p.Mask&0x08 == 0 {
-		return SystemPalette[p.ppuFetch(0x3F00)&0x3F] // Color universal
+		return SystemPalette[p.ppuFetch(0x3F00)&0x3F], false // Color universal (transparente a efectos de mix)
 	}
 
 	// getBackgroundPixel usa VramAddr (Loopy V) que ya contiene el scroll integrado.
@@ -282,7 +282,7 @@ func (p *PPU) getBackgroundPixel(x, y int) color.RGBA {
 
 	// Si es transparente (0), devolver color universal
 	if colorBit == 0 {
-		return SystemPalette[p.ppuFetch(0x3F00)&0x3F]
+		return SystemPalette[p.ppuFetch(0x3F00)&0x3F], false
 	}
 
 	// 4. Fetch Atributo: Qué paleta usar (0-3) para este bloque de 16x16
@@ -296,7 +296,7 @@ func (p *PPU) getBackgroundPixel(x, y int) color.RGBA {
 
 	// 5. Componer dirección final de paleta y leer color RGB
 	pAddr := 0x3F00 + uint16(paletteIdx)*4 + uint16(colorBit)
-	return SystemPalette[p.ppuFetch(pAddr)&0x3F]
+	return SystemPalette[p.ppuFetch(pAddr)&0x3F], true
 }
 
 // checkSprite0Hit verifica colisión pixel-perfecta para el Sprite 0
@@ -366,21 +366,13 @@ func (p *PPU) checkSprite0Hit(x, y int) {
 	}
 
 	// Checkear si el fondo también es opaco en este punto
-	// Nota: Esto es una simplificación, técnicamente deberíamos reusar el pixel
-	// leído por renderBackground, pero recalcularlo aquí es más seguro para aislamiento.
+	// Ahora usamos la función actualizada que retorna opacidad.
+	// Nota: Esto duplica el cálculo de fondo, pero es necesario para la precisión.
+	_, bgOpaque := p.getBackgroundPixel(x, y)
 
-	// (Código de lectura de fondo simplificado para hit test...)
-	// ... Asumimos hit si sprite es opaco y fondo es opaco:
-
-	// Por simplicidad en este código didáctico, a veces se puede asumir
-	// que si llegamos aquí es hit. Pero hagamos el check de fondo rápido:
-
-	// bgPixel := ... (lógica de getBackgroundPixel)
-	// if bgPixel != 0 { p.Sprite0Hit = true }
-
-	// Hack educativo seguro: Si hay pixel de sprite 0 visible, asumimos hit
-	// con alta probabilidad en zonas densas.
-	p.Sprite0Hit = true
+	if bgOpaque {
+		p.Sprite0Hit = true
+	}
 }
 
 // getSpritePixel busca si algún sprite cubre el pixel (x,y)
@@ -484,7 +476,6 @@ func (p *PPU) Read(addr uint16) byte {
 		p.AddrLatch = 0       // Resetear latch
 		p.NmiOccurred = false // Leer status limpia VBlank flag (efecto secundario hardware)
 
-		fmt.Printf("PPU Read Status $2002: %02X @ %d:%d\n", result, p.Scanline, p.Cycle)
 		return result
 
 	case 0x2004: // OAMDATA
@@ -517,7 +508,6 @@ func (p *PPU) Read(addr uint16) byte {
 func (p *PPU) Write(addr uint16, data byte) {
 	switch 0x2000 + (addr % 8) {
 	case 0x2000: // PPUCTRL
-		fmt.Printf("PPU Write Ctrl $2000: %02X (NMI=%v)\n", data, data&0x80 != 0)
 		p.Ctrl = data
 		p.NmiOutput = data&0x80 != 0 // Bit 7 habilita NMI
 
@@ -525,7 +515,6 @@ func (p *PPU) Write(addr uint16, data byte) {
 		p.TempAddr = (p.TempAddr & 0xF3FF) | (uint16(data&0x03) << 10)
 
 	case 0x2001: // PPUMASK
-		fmt.Printf("PPU Write Mask $2001: %02X\n", data)
 		p.Mask = data
 
 	case 0x2003: // OAMADDR
