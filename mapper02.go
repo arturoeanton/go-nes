@@ -34,6 +34,7 @@ func (m *Mapper2) Write(addr uint16, data byte) {
 }
 
 func (m *Mapper2) ReadCHR(addr uint16) int       { return int(addr) }
+func (m *Mapper2) NotifyA12(high bool)           {}
 func (m *Mapper2) Scanline()                     {}
 func (m *Mapper2) Tick()                         {}
 func (m *Mapper2) IRQState() bool                { return false }

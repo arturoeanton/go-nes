@@ -142,9 +142,10 @@ func (m *Mapper1) ReadCHR(addr uint16) int {
 	return m.chrOffsets[bank] + offset
 }
 
-func (m *Mapper1) Scanline()      {}
-func (m *Mapper1) Tick()          {}
-func (m *Mapper1) IRQState() bool { return false }
+func (m *Mapper1) NotifyA12(high bool) {}
+func (m *Mapper1) Scanline()           {}
+func (m *Mapper1) Tick()               {}
+func (m *Mapper1) IRQState() bool      { return false }
 
 // GetMirror devuelve el mirroring dinámico configurado en el registro de Control.
 func (m *Mapper1) GetMirror() (MirrorMode, bool) {

@@ -137,7 +137,9 @@ func (p *PPU) Tick() bool {
 	}
 
 	// MMC3 IRQ Hook (aprox ciclo 260)
-	if p.Cycle == 260 && (p.Scanline < 240) && (p.Mask&0x18 != 0) {
+	// Llamamos Scanline() en scanlines visibles (0-239) Y en pre-render (261)
+	// para que el contador del MMC3 funcione correctamente incluso durante inicialización.
+	if p.Cycle == 260 && (p.Scanline < 240 || p.Scanline == 261) && (p.Mask&0x18 != 0) {
 		p.Cart.Mapper.Scanline()
 	}
 

@@ -147,6 +147,8 @@ func (m *Mapper69) Tick() {
 	}
 }
 
+func (m *Mapper69) NotifyA12(high bool) {} // FME-7 no usa A12 detection
+
 func (m *Mapper69) IRQState() bool {
 	// La interrupción física solo ocurre si hay una pendiente Y están habilitadas
 	return m.irqActive && m.irqEnabled

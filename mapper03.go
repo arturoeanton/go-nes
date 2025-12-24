@@ -28,6 +28,7 @@ func (m *Mapper3) Write(addr uint16, data byte) {
 func (m *Mapper3) ReadCHR(addr uint16) int {
 	return m.chrBank*8192 + int(addr)
 }
+func (m *Mapper3) NotifyA12(high bool)           {}
 func (m *Mapper3) Scanline()                     {}
 func (m *Mapper3) Tick()                         {}
 func (m *Mapper3) IRQState() bool                { return false }

@@ -55,9 +55,10 @@ func (m *Mapper7) ReadCHR(addr uint16) int {
 	return int(addr)
 }
 
-func (m *Mapper7) Scanline()      {}
-func (m *Mapper7) IRQState() bool { return false }
-func (m *Mapper7) Tick()          {} // Implementación vacía para interfaz
+func (m *Mapper7) NotifyA12(high bool) {}
+func (m *Mapper7) Scanline()           {}
+func (m *Mapper7) IRQState() bool      { return false }
+func (m *Mapper7) Tick()               {} // Implementación vacía para interfaz
 func (m *Mapper7) GetMirror() (MirrorMode, bool) {
 	return m.mirrorMode, true
 }

@@ -27,9 +27,10 @@ func (m *Mapper0) Write(addr uint16, data byte) {}
 // Mapper 0 mapea CHR directament (no hay bancos).
 func (m *Mapper0) ReadCHR(addr uint16) int { return int(addr) }
 
-func (m *Mapper0) Scanline()      {}
-func (m *Mapper0) Tick()          {}
-func (m *Mapper0) IRQState() bool { return false }
+func (m *Mapper0) NotifyA12(high bool) {}
+func (m *Mapper0) Scanline()           {}
+func (m *Mapper0) Tick()               {}
+func (m *Mapper0) IRQState() bool      { return false }
 func (m *Mapper0) GetMirror() (MirrorMode, bool) {
 	// Mapper 0 no controla mirroring (se define por soldadura en el cartucho).
 	return 0, false
