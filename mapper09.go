@@ -130,11 +130,12 @@ func (m *Mapper9) ReadCHR(addr uint16) int {
 		offset = bank*4096 + int(addr&0x0FFF)
 
 		// IMPORTANTE: Actualizar latch DESPUÉS de leer
-		// El latch cambia cuando se lee tile $0FD8-$0FDF o $0FE8-$0FEF
-		tileAddr := addr & 0x0FF8
-		if tileAddr == 0x0FD8 {
+		// El latch cambia cuando se lee cualquier byte del tile $FD o $FE
+		// Tile $FD = addresses $0FD0-$0FDF, Tile $FE = $0FE0-$0FEF
+		tileIndex := (addr >> 4) & 0xFF // Índice de tile (0-255)
+		if tileIndex == 0xFD {
 			m.latch0 = 0xFD
-		} else if tileAddr == 0x0FE8 {
+		} else if tileIndex == 0xFE {
 			m.latch0 = 0xFE
 		}
 	} else {
@@ -147,11 +148,11 @@ func (m *Mapper9) ReadCHR(addr uint16) int {
 		offset = bank*4096 + int(addr&0x0FFF)
 
 		// Actualizar latch para pattern table 1
-		// Usar máscara que preserva bit $1000
-		tileAddr := addr & 0x1FF8
-		if tileAddr == 0x1FD8 {
+		// Tile $FD = addresses $1FD0-$1FDF, Tile $FE = $1FE0-$1FEF
+		tileIndex := (addr >> 4) & 0xFF // Índice de tile (0-255)
+		if tileIndex == 0xFD {
 			m.latch1 = 0xFD
-		} else if tileAddr == 0x1FE8 {
+		} else if tileIndex == 0xFE {
 			m.latch1 = 0xFE
 		}
 	}

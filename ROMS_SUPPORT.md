@@ -14,12 +14,12 @@
 | **Bomberman** | Mapper 0 (NROM) |
 | **Contra** | Mapper 2 (UxROM) |
 | **Super Mario Bros** | Mapper 0 (NROM) |
-| **Punch-Out!!** | Mapper 9 (MMC2) - *pendiente de probar* |
 
 ## 🟡 Parcialmente Funcionales
 
 | Juego | Mapper | Estado |
 | :--- | :--- | :--- |
+| **Punch-Out!!** | Mapper 9 (MMC2) | Jugable. Background con glitches menores. |
 | **Gimmick!** | Mapper 69 (FME-7) | Menús/mapa OK, gameplay con glitches. |
 
 ## ❗ Con Problemas Conocidos
@@ -39,5 +39,5 @@
 | 3 | CNROM | ✅ |
 | 4 | MMC3 | ✅ |
 | 7 | AxROM | ✅ |
-| 9 | MMC2 | ✅ (nuevo) |
+| 9 | MMC2 | 🟡 (nuevo) |
 | 69 | FME-7 | ✅ |
