@@ -19,7 +19,7 @@
 
 | Juego | Mapper | Estado |
 | :--- | :--- | :--- |
-| **Gimmick!** | Mapper 69 (FME-7) | Verificando mejoras... |
+| **Gimmick!** | Mapper 69 (FME-7) | Menús/mapa OK, gameplay con glitches. Usa efectos mid-frame avanzados. |
 
 ## ❗ Con Problemas Conocidos
 
