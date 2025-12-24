@@ -137,6 +137,11 @@ func main() {
 		// Bancos PRG 32KB, Mirroring por software.
 		cart.Mapper = NewMapper7(prgBanks)
 		LogInfo("Mapper 7 (AxROM) detectado para %s", romPath)
+	case 9:
+		// Mapper 9 (MMC2): Punch-Out!!
+		// CHR latch automático con tiles $FD/$FE.
+		cart.Mapper = NewMapper9(prgBanks, chrBanks)
+		LogInfo("Mapper 9 (MMC2) detectado para %s", romPath)
 	case 69:
 		// Mapper 69 (Sunsoft FME-7): Batman Return of the Joker.
 		// IRQ por ciclos de CPU, bancos CHR 1KB.

@@ -14,12 +14,13 @@
 | **Bomberman** | Mapper 0 (NROM) |
 | **Contra** | Mapper 2 (UxROM) |
 | **Super Mario Bros** | Mapper 0 (NROM) |
+| **Punch-Out!!** | Mapper 9 (MMC2) - *pendiente de probar* |
 
 ## 🟡 Parcialmente Funcionales
 
 | Juego | Mapper | Estado |
 | :--- | :--- | :--- |
-| **Gimmick!** | Mapper 69 (FME-7) | Menús/mapa OK, gameplay con glitches. Usa efectos mid-frame avanzados. |
+| **Gimmick!** | Mapper 69 (FME-7) | Menús/mapa OK, gameplay con glitches. |
 
 ## ❗ Con Problemas Conocidos
 
@@ -27,3 +28,16 @@
 | :--- | :--- | :--- |
 | **Aladdin** | Mapper 4 (MMC3) | Crash. Requiere A12 edge detection. |
 | **Shinobi** | Mapper 4 (MMC3) | Crash. |
+
+## Mappers Soportados
+
+| ID | Nombre | Estado |
+| --- | --- | --- |
+| 0 | NROM | ✅ |
+| 1 | MMC1 | ✅ |
+| 2 | UxROM | ✅ |
+| 3 | CNROM | ✅ |
+| 4 | MMC3 | ✅ |
+| 7 | AxROM | ✅ |
+| 9 | MMC2 | ✅ (nuevo) |
+| 69 | FME-7 | ✅ |
