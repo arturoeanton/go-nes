@@ -8,11 +8,22 @@ Estos juegos han sido objeto de sesiones intensivas de debugging y funcionan cor
 
 | Juego | Mapper | Notas |
 | :--- | :--- | :--- |
+| **Ninja Gaiden** | Mapper 1 (MMC1) | Funciona Perfecto. Requiere soporte de Sprites 8x16 (implementado) y corrección de Mirroring inicial (fixed). |
+| **Bomberman** | Mapper 0 (NROM) | Funciona Perfecto. |
+| **Adventure Island** | Mapper 3 (CNROM) | Funciona Perfecto. |
 | **Super Mario Bros 3** | Mapper 4 (MMC3) | Requiere soporte de WRAM (arreglado). IRQ de Scanline funciona bien. |
 | **Contra** | Mapper 2 (UxROM) | Requiere timing preciso de CHR-RAM (sin double buffering) para evitar ghosting. |
 | **Super Mario Bros** | Mapper 0 (NROM) | Verificado. Funciona perfecto. |
 | **Prince of Persia** | Mapper 1 (MMC1) | Verificado. Funciona perfecto. |
 | **Tecmo World Cup Soccer** | Mapper 0 (NROM) | Verificado. Sprites 8x16 funcionan bien. |
+
+## ❗ Con Problemas Conocidos
+
+| Juego | Mapper | Problema |
+| :--- | :--- | :--- |
+| **Bubble Bobble** | Mapper 1 (MMC1) | **Crash al inicio**. Error de índice fuera de rango en paleta. Requiere debug. |
+| **Batman - Return of the Joker** | Mapper 69 (FME-7) | **No funciona**. Mapper 69 no implementado. |
+
 
 ## 🟡 Soportados (Según Implementación)
 

@@ -18,7 +18,9 @@ El CPU 6502 del NES tiene instrucciones "no oficiales" que resultan de combinaci
 ## 4. Precisión del PPU
 El PPU renderiza píxeles ciclo a ciclo, pero algunas sutilezas del timing analógico o efectos de "mid-scanline" muy precisos (como cambios de scroll en el *mismo* scanline para efectos de agua) podrían no ser 100% perfectos.
 - **Estado**: Funcional para la gran mayoría de juegos (incluyendo scroll split de *SMB3*).
-- **Correcciones Recientes**: Se eliminó el "Double Buffering" de CHR-RAM que causaba ghosting en juegos como *Contra*. Ahora la actualización es inmediata.
+- **Correcciones Recientes**:
+    - Se eliminó el "Double Buffering" de CHR-RAM que causaba ghosting en juegos como *Contra*.
+    - Se implementó la lógica correcta de **Sprite 0 Hit para sprites de 8x16**, solucionando cuelgues en *Ninja Gaiden*.
 
 ## 5. Entrada
 Solo se soporta el **Controlador 1** mapeado al teclado.

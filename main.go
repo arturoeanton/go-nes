@@ -171,6 +171,11 @@ func main() {
 		// Nota: MMC3 usa bancos de CHR de 1KB, por eso multiplicamos por 8.
 		cart.Mapper = NewMapper4(prgBanks, chrBanks*8)
 		log.Printf("Mapper 4 (MMC3) detectado para %s", os.Args[1])
+	case 7:
+		// Mapper 7 (AxROM): Battletoads.
+		// Bancos PRG 32KB, Mirroring por software.
+		cart.Mapper = NewMapper7(prgBanks)
+		log.Printf("Mapper 7 (AxROM) detectado para %s", os.Args[1])
 	default:
 		// Fallback de seguridad
 		log.Printf("ADVERTENCIA: Mapper %d no soportado plenamente. Usando Mapper 0.", mapperID)

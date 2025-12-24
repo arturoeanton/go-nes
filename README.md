@@ -20,12 +20,13 @@ Hemos construido un sistema capaz de ejecutar juegos comerciales icónicos y com
 *   **PPU (Picture Processing Unit)**: Emulación gráfica avanzada.
     *   Rendering basado en Scanlines.
     *   Soporte de Backgrounds (Nametables) y Scroll.
-    *   Soporte de Sprites de 8x8 y **8x16** (usado en juegos como *Tecmo World Cup Soccer*).
+    *   Soporte de Sprites de 8x8 y **8x16** (Critico para *Ninja Gaiden* y *Tecmo World Cup*).
+    *   **Sprite 0 Hit** pixel-perfect (incluyendo soporte correcto para sprites 8x16).
     *   Mirroring Dinámico (Horizontal, Vertical, Single Screen).
     *   CHR-RAM Double Buffering (solución para glitches visuales).
 *   **Sistema de Cartuchos y Mappers**: Soporte para múltiples tipos de hardware de cartucho.
     *   **Mapper 0 (NROM)**: *Super Mario Bros*, *Donkey Kong*.
-    *   **Mapper 1 (MMC1)**: *Prince of Persia*, *Metroid*, *Zelda*. (Incluye soporte de carga serial).
+    *   **Mapper 1 (MMC1)**: *Prince of Persia*, *Metroid*, *Zelda*, *Ninja Gaiden*. (Soporte completo de carga serial y Mirroring dinámico corregido).
     *   **Mapper 2 (UxROM)**: *Contra* (Sin ghosting de sprites), *Castlevania*.
     *   **Mapper 3 (CNROM)**: *Cybernoid*.
     *   **Mapper 4 (MMC3)**: *Super Mario Bros 3* (Soporte de WRAM y Scanline IRQ).
@@ -61,6 +62,8 @@ Puedes encontrarlo en el directorio `docs/books/`.
 
 ### Extras:
 *   [Lecciones Aprendidas y Robadas](LECCIONES_APRENDIDAS_ROBADAS.md): Documento sobre los fixes específicos para SMB3 y Contra.
+*   [Lista de ROMs Soportados](ROMS_SUPPORT.md): Juegos verificados y notas de compatibilidad.
+
 
 
 ## 🐛 Issues Conocidos

@@ -112,54 +112,36 @@ func NewPPU(cart *Cartridge) *PPU {
 func (p *PPU) Tick() bool {
 	nmiTriggered := false
 
-	// Scanline 261: Pre-render (Línea de preparación)
-	// Es la línea antes de empezar a dibujar el frame 0.
-	if p.Scanline == 261 {
-		if p.Cycle == 1 {
-			// Inicio del frame: Limpiar flags de estado
-			p.NmiOccurred = false
-			p.Sprite0Hit = false
-			p.SpriteOverflow = false
-
-			// Intercambiar buffers de CHR-RAM (ELIMINADO)
-			/*
-				if p.chrDirty && len(p.chrWriteBuffer) > 0 {
-					copy(p.chrReadBuffer, p.chrWriteBuffer)
-					p.chrDirty = false
-				}
-			*/
-
-		}
-	}
-
 	// Scanlines Visibles (0-239)
 	if p.Scanline < 240 {
 		// Ciclos 1-256: Renderizado activo de píxeles
 		if p.Cycle > 0 && p.Cycle <= 256 {
 			p.renderPixel()
+			if p.Cycle%8 == 0 {
+				p.incrementCoarseX()
+			}
 
 			// Detección de Sprite 0 Hit:
-			// El Sprite 0 es especial. Si un pixel opaco del Sprite 0 choca con un
-			// pixel opaco del fondo, se activa este flag.
-			// Juegos como Super Mario Bros usan esto para saber cuando
-			// el haz de electrones ha terminado de dibujar la barra de estado superior,
-			// y cambiar el scroll para mover solo el nivel.
 			if !p.Sprite0Hit && p.Mask&0x18 == 0x18 {
-				// Solo chequear si BG y Sprites están activados
 				p.checkSprite0Hit(p.Cycle-1, p.Scanline)
 			}
+
+			if p.Cycle == 256 {
+				p.incrementY()
+			}
+		}
+
+		if p.Cycle == 257 {
+			p.copyX()
 		}
 	}
 
 	// MMC3 IRQ Hook (aprox ciclo 260)
-	// El Mapper MMC3 cuenta scanlines observando el bus de la PPU.
-	// Simulamos esto avisando al mapper en cada línea visible.
 	if p.Cycle == 260 && (p.Scanline < 240) && (p.Mask&0x18 != 0) {
 		p.Cart.Mapper.Scanline()
 	}
 
-	// Scanline 241: Inicio de VBlank (Intervalo Vertical)
-	// Aquí la PPU descansa y le dice a la CPU "Terminé, puedes actualizar gráficos".
+	// Scanline 241: Inicio de VBlank
 	if p.Scanline == 241 && p.Cycle == 1 {
 		p.NmiOccurred = true
 		if p.NmiOutput {
@@ -167,11 +149,21 @@ func (p *PPU) Tick() bool {
 		}
 	}
 
-	// Ciclo 1 del Pre-render: Resetear flags de nuevo por seguridad
-	if p.Scanline == 261 && p.Cycle == 1 {
-		p.NmiOccurred = false
-		p.Sprite0Hit = false
-		p.SpriteOverflow = false
+	// Scanline 261: Pre-render
+	if p.Scanline == 261 {
+		if p.Cycle == 1 {
+			p.NmiOccurred = false
+			p.Sprite0Hit = false
+			p.SpriteOverflow = false
+		}
+
+		if p.Cycle == 257 {
+			p.copyX()
+		}
+
+		if p.Cycle >= 280 && p.Cycle <= 304 {
+			p.copyY()
+		}
 	}
 
 	// Avanzar contadores de ciclo y scanline
@@ -236,28 +228,37 @@ func (p *PPU) getBackgroundPixel(x, y int) color.RGBA {
 		return SystemPalette[p.ppuFetch(0x3F00)] // Color universal
 	}
 
-	// Calcular coordenadas reales sumando el Scroll
-	scrolledX := uint16(x) + uint16(p.ScrollX)
-	scrolledY := uint16(y) + uint16(p.ScrollY)
+	// getBackgroundPixel usa VramAddr (Loopy V) que ya contiene el scroll integrado.
 
-	// Determinar en qué Nametable estamos
-	// Hay 4 nametables lógicas. La base la da PPUCTRL. Sumamos el desbordamiento del scroll.
-	baseNTX := uint16(p.Ctrl & 0x01)
-	baseNTY := uint16((p.Ctrl & 0x02) >> 1)
+	// v = YYY NN YYYYY XXXXX
+	// Tenemos que manejar el FineX (desplazamiento suave) pixel a pixel.
+	// x % 8 nos dice en qué pixel del ciclo de 8 estamos.
+	// FineX nos dice cuánto desplazar.
 
-	scrollNTX := (scrolledX / 256) & 1
-	scrollNTY := (scrolledY / 240) & 1
+	currentVP := p.VramAddr
+	fineOffset := (x % 8) + int(p.FineX)
 
-	logicalNT := ((baseNTX + scrollNTX) & 1) | (((baseNTY + scrollNTY) & 1) << 1)
+	// Si el desplazamiento nos empuja al siguiente tile, calculamos su dirección
+	if fineOffset >= 8 {
+		currentVP = p.calculateNextCoarseX(currentVP)
+	}
+
+	// El bit específico del tile que queremos dibujar
+	pixelInTile := fineOffset % 8
+
+	v := currentVP
 
 	// Dirección base en VRAM de la nametable ($2000, $2400, $2800, $2C00)
-	vramAddr := 0x2000 + logicalNT*0x400
+	// Bits 10-11 de v indican la Nametable (0-3)
+	ntIdx := (v >> 10) & 0x03
+	vramAddr := 0x2000 + (ntIdx * 0x400)
 
 	// Coordenadas dentro de la nametable (0-31 tiles)
-	tileX := (scrolledX % 256) / 8
-	tileY := (scrolledY % 240) / 8
-	fineX := scrolledX % 8
-	fineY := scrolledY % 8
+	tileX := v & 0x1F         // Coarse X
+	tileY := (v >> 5) & 0x1F  // Coarse Y
+	fineY := (v >> 12) & 0x07 // Fine Y
+
+	// fineX lo manejamos con pixelInTile ahora
 
 	// 1. Fetch Tile ID: Qué gráfico dibujar
 	addr := vramAddr + tileY*32 + tileX
@@ -274,7 +275,7 @@ func (p *PPU) getBackgroundPixel(x, y int) color.RGBA {
 	high := p.ppuFetch(tAddr + 8) // Plano alto de color
 
 	// 3. Combinar planos para obtener color de pixel (0-3)
-	shift := 7 - fineX
+	shift := 7 - pixelInTile
 	colorBit := ((low >> shift) & 1) | (((high >> shift) & 1) << 1)
 
 	// Si es transparente (0), devolver color universal
@@ -303,11 +304,19 @@ func (p *PPU) checkSprite0Hit(x, y int) {
 	spriteY := int(s.Y) + 1
 	spriteX := int(s.X)
 
-	// Si no estamos dentro del bounding box del sprite 0, salir
-	if x < spriteX || x >= spriteX+8 {
+	// Determinar altura y lógica de banco/tile
+	spriteHeight := 8
+	if p.Ctrl&0x20 != 0 {
+		spriteHeight = 16
+	}
+
+	// Bounding box Y
+	if y < spriteY || y >= spriteY+spriteHeight {
 		return
 	}
-	if y < spriteY || y >= spriteY+8 {
+
+	// Bounding box X
+	if x < spriteX || x >= spriteX+8 {
 		return
 	}
 
@@ -317,19 +326,33 @@ func (p *PPU) checkSprite0Hit(x, y int) {
 
 	// Manejar espejado del sprite
 	if s.Attr&0x80 != 0 {
-		row = 7 - row
+		row = spriteHeight - 1 - row
 	}
 	if s.Attr&0x40 != 0 {
 		col = 7 - col
 	}
 
-	// Leer gráfico del sprite
+	// Lógica de selección de Banco y Tile ID (copiada de getSpritePixel)
 	bank := uint16(0)
-	if p.Ctrl&0x08 != 0 {
-		bank = 0x1000
+	tileID := uint16(s.TileID)
+
+	if spriteHeight == 8 {
+		// Modo 8x8: Banco determinado por Bit 3 de PPUCTRL
+		if p.Ctrl&0x08 != 0 {
+			bank = 0x1000
+		}
+	} else {
+		// Modo 8x16: El bit 0 del Tile ID selecciona el banco (0 o 1)
+		bank = uint16(tileID&1) * 0x1000
+		tileID &= 0xFE // Limpiar bit 0
+		// Si estamos en la mitad inferior del sprite (row >= 8), usar siguiente tile
+		if row >= 8 {
+			tileID++
+			row -= 8
+		}
 	}
 
-	tAddr := bank + uint16(s.TileID)*16 + uint16(row)
+	tAddr := bank + tileID*16 + uint16(row)
 	low := p.ppuFetch(tAddr)
 	high := p.ppuFetch(tAddr + 8)
 
@@ -658,4 +681,81 @@ func (p *PPU) Draw(screen *ebiten.Image) {
 		y := i / 256
 		screen.Set(x, y, p.FrameBuffer[i])
 	}
+}
+
+// =====================================
+// Helpers de Scrolling (Loopy Logic)
+// =====================================
+
+// incrementCoarseX avanza la posición horizontal en VRAM (saltando de nametable si es necesario)
+func (p *PPU) incrementCoarseX() {
+	if p.Mask&0x18 == 0 {
+		return // Solo si rendering activado
+	}
+	p.VramAddr = p.calculateNextCoarseX(p.VramAddr)
+}
+
+// calculateNextCoarseX calcula la siguiente dirección VRAM horizontal sin modificar el estado
+func (p *PPU) calculateNextCoarseX(v uint16) uint16 {
+	if (v & 0x001F) == 31 { // Si Coarse X == 31
+		v &= 0xFFE0 // Coarse X = 0
+		v ^= 0x0400 // Switch horizontal nametable (bit 10)
+	} else {
+		v++ // Coarse X++
+	}
+	return v
+}
+
+// incrementY avanza la posición vertical en VRAM
+func (p *PPU) incrementY() {
+	if p.Mask&0x18 == 0 {
+		return
+	}
+	v := p.VramAddr
+	fineY := (v & 0x7000) >> 12
+	if fineY < 7 {
+		fineY++
+		v = (v & 0x8FFF) | (fineY << 12)
+	} else {
+		fineY = 0
+		v = (v & 0x8FFF) | (fineY << 12)
+
+		y := (v & 0x03E0) >> 5 // Coarse Y
+		if y == 29 {
+			y = 0
+			v ^= 0x0800 // Switch vertical nametable (bit 11)
+		} else if y == 31 {
+			y = 0
+		} else {
+			y++
+		}
+		v = (v & 0xFC1F) | (y << 5)
+	}
+	p.VramAddr = v
+}
+
+// copyX: Copia la posición X horizontal temporal (t) a la actual (v).
+// Se usa en cada scanline (ciclo 257) para resetear el scroll X.
+func (p *PPU) copyX() {
+	if p.Mask&0x18 == 0 {
+		return
+	}
+	// Mascara: Nametable bit 0 (horizontal) + Coarse X
+	// v: ... .N.. ...X XXXX
+	// t: ... .N.. ...X XXXX
+	// Mask: 0000 0100 0001 1111 = 0x041F
+	p.VramAddr = (p.VramAddr & 0xFBE0) | (p.TempAddr & 0x041F)
+}
+
+// copyY: Copia la posición Y vertical temporal (t) a la actual (v).
+// Se usa en el pre-render scanline (ciclos 280-304) para resetear el scroll Y frame a frame.
+func (p *PPU) copyY() {
+	if p.Mask&0x18 == 0 {
+		return
+	}
+	// Mascara: Fine Y + Nametable bit 1 (vertical) + Coarse Y
+	// v: YYY N.YY YYY. ....
+	// t: YYY N.YY YYY. ....
+	// Mask: 0111 1011 1110 0000 = 0x7BE0
+	p.VramAddr = (p.VramAddr & 0x041F) | (p.TempAddr & 0x7BE0)
 }
