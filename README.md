@@ -30,6 +30,8 @@ Hemos construido un sistema capaz de ejecutar juegos comerciales icónicos y com
     *   **Mapper 2 (UxROM)**: *Contra* (Sin ghosting de sprites), *Castlevania*.
     *   **Mapper 3 (CNROM)**: *Cybernoid*.
     *   **Mapper 4 (MMC3)**: *Super Mario Bros 3* (Soporte de WRAM y Scanline IRQ).
+    *   **Mapper 7 (AxROM)**: *Battletoads*.
+    *   **Mapper 69 (FME-7)**: *Batman: Return of the Joker* (Soporte de IRQ preciso por ciclos de CPU).
 *   **Visualización**: Uso de la librería **Ebiten** para renderizado de buffers de píxeles modernos a 60 FPS.
 
 ## 🔇 Nota sobre el Audio

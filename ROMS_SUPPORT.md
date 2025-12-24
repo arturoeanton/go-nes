@@ -9,8 +9,10 @@ Estos juegos han sido objeto de sesiones intensivas de debugging y funcionan cor
 | Juego | Mapper | Notas |
 | :--- | :--- | :--- |
 | **Ninja Gaiden** | Mapper 1 (MMC1) | Funciona Perfecto. Requiere soporte de Sprites 8x16 (implementado) y corrección de Mirroring inicial (fixed). |
+| **Batman - Return of the Joker** | Mapper 69 (FME-7) | **Funciona Perfecto**. Nueva implementación de Mapper 69 con IRQ por ciclos de CPU. |
 | **Bomberman** | Mapper 0 (NROM) | Funciona Perfecto. |
 | **Adventure Island** | Mapper 3 (CNROM) | Funciona Perfecto. |
+| **Bubble Bobble** | Mapper 1 (MMC1) | Funciona Perfecto. Fix aplicado a crash por índice de paleta. |
 | **Super Mario Bros 3** | Mapper 4 (MMC3) | Requiere soporte de WRAM (arreglado). IRQ de Scanline funciona bien. |
 | **Contra** | Mapper 2 (UxROM) | Requiere timing preciso de CHR-RAM (sin double buffering) para evitar ghosting. |
 | **Super Mario Bros** | Mapper 0 (NROM) | Verificado. Funciona perfecto. |

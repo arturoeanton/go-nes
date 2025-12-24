@@ -10,6 +10,8 @@ type Bus struct {
 	RAM  [2048]byte  // RAM interna del sistema (2KB).
 	ROM  []byte      // Referencia a la ROM del programa (PRG-ROM) para acceso rápido.
 	PPU  *PPU        // Puntero a la Unidad de Procesamiento de Gráficos.
+	APU  *APU        // Puntero a la Unidad de Procesamiento de Audio.
+	Cart *Cartridge  // Referencia directa al Cartucho (para Mapper Tick, etc)
 	Joy1 InputDevice // Puntero al controlador 1 (Joystick).
 }
 
@@ -43,9 +45,24 @@ func (b *Bus) Read(addr uint16) byte {
 		// En hardware real devuelve estado del Joy 2. Aquí devolvemos 0x40 (frame irq flag off).
 		return 0x40
 
+	// $4015: APU Status
+	case addr == 0x4015:
+		if b.APU != nil {
+			return b.APU.Read(addr)
+		}
+		return 0
+
 	// $6000 - $7FFF: WRAM / PRG-RAM (8KB)
 	// Memoria de trabajo extra que traen algunos cartuchos (como SMB3, Zelda).
+	// $6000 - $7FFF: WRAM / PRG-RAM (8KB)
+	// Memoria de trabajo... pero algunos mappers (FME-7) pueden mapear ROM aquí.
 	case addr >= 0x6000 && addr < 0x8000:
+		// 1. Preguntar al Mapper si tiene algo mapeado aquí (ROM)
+		index := b.PPU.Cart.Mapper.Read(addr)
+		if index >= 0 && index < len(b.PPU.Cart.PRG) {
+			return b.PPU.Cart.PRG[index]
+		}
+		// 2. Si no, usar WRAM
 		if len(b.PPU.Cart.WRAM) > 0 {
 			return b.PPU.Cart.WRAM[addr-0x6000]
 		}
@@ -103,18 +120,30 @@ func (b *Bus) Write(addr uint16, data byte) {
 
 	// $6000 - $7FFF: WRAM / PRG-RAM (8KB)
 	case addr >= 0x6000 && addr < 0x8000:
-		if len(b.PPU.Cart.WRAM) > 0 {
-			b.PPU.Cart.WRAM[addr-0x6000] = data
+		// Si el Mapper tiene ROM mapeada aquí, NO escribir en WRAM subyacente.
+		if b.Cart.Mapper.Read(addr) >= 0 {
+			return
+		}
+		if len(b.Cart.WRAM) > 0 {
+			b.Cart.WRAM[addr-0x6000] = data
 		}
 
 	// $8000 - $FFFF: Escritura en Cartucho (Mapper)
 	// La ROM es de solo lectura, PERO escribir aquí se usa para enviar
 	// comandos al chip Mapper (ej: "Cambia al banco de gráficos 5").
 	case addr >= 0x8000:
-		b.PPU.Cart.Mapper.Write(addr, data)
+		b.Cart.Mapper.Write(addr, data)
 
 	default:
-		// APU y otros registros de I/O no implementados se ignoran.
+		// APU y otros registros de I/O
+		if (addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015 || addr == 0x4017 {
+			if b.APU != nil {
+				b.APU.Write(addr, data)
+			}
+			return
+		}
+
+		// Otros registros no implementados se ignoran.
 		return
 	}
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -15,87 +14,6 @@ const (
 	ScreenHeight = 240
 )
 
-// Game es la estructura principal que Ebiten usará para correr el bucle del juego.
-// Contiene referencias a los tres componentes principales: CPU, Bus y PPU.
-type Game struct {
-	CPU *CPU
-	Bus *Bus
-	// cpuCyclesDebt se usa para mantener la sincronización entre CPU y PPU.
-	// El PPU va 3 veces más rápido que el CPU. Acumulamos "deuda" de ciclos
-	// para que el CPU ejecute instrucciones hasta alcanzar al PPU.
-	cpuCyclesDebt int
-}
-
-// Update es el corazón del emulador. Ebiten llama a esta función 60 veces por segundo (60Hz).
-// Aquí simulamos un frame completo de la NES.
-func (g *Game) Update() error {
-	// ciclos por frame = 262 scanlines * 341 ciclos por scanline = 89342
-	// En hardware real esto es continuo, aquí lo simulamos por bloques de frame.
-	const ppuCyclesPerFrame = 89342
-
-	for i := 0; i < ppuCyclesPerFrame; i++ {
-		// 1. Reloj Maestro: La PPU dicta el tiempo
-		// Tick() avanza un ciclo de PPU (dibujo de píxeles, etc).
-		// Retorna true si se activó una NMI (VBlank).
-		nmiTriggered := g.Bus.PPU.Tick()
-
-		if nmiTriggered {
-			// Si hubo NMI (Non-Maskable Interrupt), avisamos al CPU.
-			// Esto ocurre cuando la PPU termina de dibujar el frame (VBlank).
-			g.CPU.NMI()
-
-			// Una interrupción toma 7 ciclos de CPU, restamos su "costo".
-			g.cpuCyclesDebt -= 7
-		}
-
-		// Chequear IRQ (Interrupciones generadas por el Mapper o APU)
-		// Mappers avanzados como MMC3 (Mapper 4) usan esto para efectos de pantalla partida.
-		if g.Bus.PPU.Cart.Mapper.IRQState() {
-			g.CPU.IRQ()
-			// Nota: En una implementación perfecta, verificaríamos si el CPU realmente
-			// aceptó la IRQ (flag I deshabilitado) antes de restar ciclos.
-		}
-
-		// 2. Reloj de CPU (Sincronía 3:1)
-		// En la NES (NTSC), por cada 3 ciclos de PPU, pasa 1 ciclo de CPU.
-		if i%3 == 0 {
-			g.cpuCyclesDebt++
-		}
-
-		// 3. Ejecutar CPU mientras tenga ciclos disponibles ("presupuesto")
-		// Si la deuda es positiva, significa que la PPU avanzó lo suficiente
-		// como para permitirle al CPU ejecutar una o más instrucciones.
-		for g.cpuCyclesDebt > 0 {
-			// Step() ejecuta una instrucción completa (ej: LDA #$00)
-			// y devuelve cuántos ciclos reales tomó (ej: 2).
-			used := g.CPU.Step()
-			g.cpuCyclesDebt -= used
-		}
-	}
-
-	// Limpieza de seguridad:
-	// Si el CPU se queda muy atrás (ej: bucle infinito o bug), reseteamos la deuda
-	// para evitar que en el siguiente frame intente ejecutar millones de ciclos de golpe,
-	// lo que congelaría el emulador.
-	if g.cpuCyclesDebt < -100 {
-		g.cpuCyclesDebt = 0
-	}
-
-	return nil
-}
-
-// Draw se llama después de Update. Copia el buffer de píxeles generado por la PPU
-// a la pantalla de Ebiten para que el usuario lo vea.
-func (g *Game) Draw(screen *ebiten.Image) {
-	g.Bus.PPU.Draw(screen)
-}
-
-// Layout define el tamaño de la pantalla lógica.
-// Ebiten escalará esto automáticamente al tamaño de la ventana.
-func (g *Game) Layout(w, h int) (int, int) {
-	return ScreenWidth, ScreenHeight
-}
-
 // main es el punto de entrada del programa.
 func main() {
 	if len(os.Args) < 2 {
@@ -104,7 +22,7 @@ func main() {
 	}
 
 	// Leer el archivo ROM completo a memoria
-	data, err := ioutil.ReadFile(os.Args[1])
+	data, err := os.ReadFile(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -176,6 +94,11 @@ func main() {
 		// Bancos PRG 32KB, Mirroring por software.
 		cart.Mapper = NewMapper7(prgBanks)
 		log.Printf("Mapper 7 (AxROM) detectado para %s", os.Args[1])
+	case 69:
+		// Mapper 69 (Sunsoft FME-7): Batman Return of the Joker.
+		// IRQ por ciclos de CPU, bancos CHR 1KB.
+		cart.Mapper = NewMapper69(prgBanks, chrBanks)
+		log.Printf("Mapper 69 (FME-7) detectado para %s", os.Args[1])
 	default:
 		// Fallback de seguridad
 		log.Printf("ADVERTENCIA: Mapper %d no soportado plenamente. Usando Mapper 0.", mapperID)
@@ -197,9 +120,16 @@ func main() {
 	// 5. Inicializar Componentes del Sistema
 	// Conexión: CPU <-> Bus <-> PPU <-> Cartucho
 	ppu := NewPPU(cart)
+	apu := NewAPU() // Nuevo: APU mínima
 	joy := NewController()
 	// El Bus conecta todo.
-	bus := &Bus{ROM: cart.PRG, PPU: ppu, Joy1: joy}
+	bus := &Bus{
+		ROM:  cart.PRG,
+		PPU:  ppu,
+		APU:  apu, // Conectar APU
+		Joy1: joy,
+		Cart: cart,
+	}
 	cpu := NewCPU(bus)
 
 	// Resetear la CPU al estado inicial (vector de reset $FFFC)

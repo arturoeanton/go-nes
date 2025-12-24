@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -143,6 +144,7 @@ func (p *PPU) Tick() bool {
 
 	// Scanline 241: Inicio de VBlank
 	if p.Scanline == 241 && p.Cycle == 1 {
+		fmt.Printf("PPU ENTER VBLANK @ Frame %d\n", p.Frame)
 		p.NmiOccurred = true
 		if p.NmiOutput {
 			nmiTriggered = true
@@ -482,6 +484,7 @@ func (p *PPU) Read(addr uint16) byte {
 		p.AddrLatch = 0       // Resetear latch
 		p.NmiOccurred = false // Leer status limpia VBlank flag (efecto secundario hardware)
 
+		fmt.Printf("PPU Read Status $2002: %02X @ %d:%d\n", result, p.Scanline, p.Cycle)
 		return result
 
 	case 0x2004: // OAMDATA
@@ -514,6 +517,7 @@ func (p *PPU) Read(addr uint16) byte {
 func (p *PPU) Write(addr uint16, data byte) {
 	switch 0x2000 + (addr % 8) {
 	case 0x2000: // PPUCTRL
+		fmt.Printf("PPU Write Ctrl $2000: %02X (NMI=%v)\n", data, data&0x80 != 0)
 		p.Ctrl = data
 		p.NmiOutput = data&0x80 != 0 // Bit 7 habilita NMI
 
@@ -521,6 +525,7 @@ func (p *PPU) Write(addr uint16, data byte) {
 		p.TempAddr = (p.TempAddr & 0xF3FF) | (uint16(data&0x03) << 10)
 
 	case 0x2001: // PPUMASK
+		fmt.Printf("PPU Write Mask $2001: %02X\n", data)
 		p.Mask = data
 
 	case 0x2003: // OAMADDR

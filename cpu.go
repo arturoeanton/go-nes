@@ -1,6 +1,8 @@
 package main
 
-import "log"
+import (
+	"log"
+)
 
 // ==========================================
 // DEFINICIÓN DE FLAGS (Registro de Estado P)
@@ -54,7 +56,11 @@ func (cpu *CPU) Reset() {
 // NMI: Non-Maskable Interrupt (Interrupción No Enmascarable).
 // Es la interrupción más importante en la NES. La PPU la dispara
 // 60 veces por segundo (VBlank) para que el juego actualice gráficos.
+// NMI: Non-Maskable Interrupt (Interrupción No Enmascarable).
+// Es la interrupción más importante en la NES. La PPU la dispara
+// 60 veces por segundo (VBlank) para que el juego actualice gráficos.
 func (cpu *CPU) NMI() {
+	log.Println("CPU NMI Triggered")
 	cpu.push16(cpu.PC)         // Guardar dónde estábamos
 	cpu.push(cpu.P & ^byte(B)) // Guardar estado (sin bit B)
 	cpu.P |= I                 // Deshabilitar interrupciones IRQ durante la NMI
@@ -339,11 +345,29 @@ func (c *CPU) ror(val byte) byte {
 // Retorna cuántos ciclos de CPU consumió.
 // ==========================================
 func (c *CPU) Step() int {
+	// Verificar interrupciones IRQ pendientes (nivel bajo)
+	// Solo si el flag I (Interrupt Disable) está limpio.
+	apuIrq := c.Bus.APU != nil && c.Bus.APU.IRQState()
+	if (c.Bus.Cart.Mapper.IRQState() || apuIrq) && (c.P&I == 0) {
+		c.IRQ()
+		// Una IRQ toma 7 ciclos
+
+		// Tick del Mapper durante los ciclos de IRQ
+		for i := 0; i < 7; i++ {
+			c.Bus.Cart.Mapper.Tick()
+		}
+		return 7
+	}
+
 	opcode := c.Bus.Read(c.PC)
 	cycles := cycleTable[opcode] // Buscar ciclos base en tabla
 	c.PC++
 
 	var extraCycles int
+
+	if c.PC < 0x8000 {
+		log.Printf("WARNING: PC executing from Low Memory: $%04X (Opcode: %02X)", c.PC, opcode)
+	}
 
 	switch opcode {
 	// --- INSTRUCCIONES DE CARGA (LOAD) ---
@@ -810,7 +834,22 @@ func (c *CPU) Step() int {
 		// aunque en hardware real hacen cosas raras.
 	}
 
-	return cycles + extraCycles
+	// Tick del Mapper para los ciclos extra (branches, page crossing, etc)
+	for i := 0; i < extraCycles; i++ {
+		c.Bus.Cart.Mapper.Tick()
+	}
+
+	// Tick del Mapper y APU (post-instrucción para capturar IRQs generados por la instrucción)
+	// Usamos cycles + extraCycles para simular el tiempo total de la instrucción.
+	totalCycles := cycles + extraCycles
+	for i := 0; i < totalCycles; i++ {
+		c.Bus.Cart.Mapper.Tick()
+		if c.Bus.APU != nil {
+			c.Bus.APU.Tick()
+		}
+	}
+
+	return totalCycles
 }
 
 // branch ejecuta la lógica de salto relativo condicional.
