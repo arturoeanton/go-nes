@@ -136,11 +136,19 @@ func (p *PPU) Tick() bool {
 		}
 	}
 
-	// MMC3 IRQ Hook (aprox ciclo 260)
-	// Llamamos Scanline() en scanlines visibles (0-239) Y en pre-render (261)
-	// para que el contador del MMC3 funcione correctamente incluso durante inicialización.
-	if p.Cycle == 260 && (p.Scanline < 240 || p.Scanline == 261) && (p.Mask&0x18 != 0) {
-		p.Cart.Mapper.Scanline()
+	// MMC3 A12 IRQ Hook
+	// En scanlines visibles (0-239) y pre-render (261), simulamos la transición A12:
+	// - Durante BG fetch (cycles 0-256): A12 típicamente bajo (pattern table 0)
+	// - Durante sprite fetch (cycles 257-320): A12 alto (pattern table 1)
+	// El flanco ascendente ocurre alrededor del ciclo 260
+	if (p.Scanline < 240 || p.Scanline == 261) && (p.Mask&0x18 != 0) {
+		if p.Cycle >= 250 && p.Cycle < 260 {
+			// Mantener A12 bajo para armar el filtro
+			p.Cart.Mapper.NotifyA12(false)
+		} else if p.Cycle == 260 {
+			// Flanco ascendente: sprite fetch usa pattern table 1
+			p.Cart.Mapper.NotifyA12(true)
+		}
 	}
 
 	// Scanline 241: Inicio de VBlank
@@ -549,7 +557,18 @@ func (p *PPU) Write(addr uint16, data byte) {
 		} else {
 			// Segunda escritura: Byte bajo
 			p.TempAddr = (p.TempAddr & 0xFF00) | uint16(data)
+			// Guardar A12 anterior para detectar flanco
+			oldA12 := (p.VramAddr & 0x1000) != 0
 			p.VramAddr = p.TempAddr // Copiar T a V
+			newA12 := (p.VramAddr & 0x1000) != 0
+			// Notificar al mapper sobre cambio de A12 (para MMC3 IRQ durante init)
+			if !oldA12 && newA12 {
+				// Flanco ascendente de A12
+				p.Cart.Mapper.NotifyA12(true)
+			} else if oldA12 && !newA12 {
+				// A12 bajó - armar filtro
+				p.Cart.Mapper.NotifyA12(false)
+			}
 			p.AddrLatch = 0
 		}
 

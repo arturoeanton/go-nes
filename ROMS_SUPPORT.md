@@ -19,15 +19,15 @@
 
 | Juego | Mapper | Estado |
 | :--- | :--- | :--- |
-| **Punch-Out!!** | Mapper 9 (MMC2) | Jugable. Background con glitches menores. |
-| **Gimmick!** | Mapper 69 (FME-7) | Menús/mapa OK, gameplay con glitches. |
+| **Punch-Out!!** | Mapper 9 (MMC2) | Jugable, BG con glitches. |
+| **Gimmick!** | Mapper 69 (FME-7) | Menús OK, gameplay con glitches. |
 
 ## ❗ Con Problemas Conocidos
 
 | Juego | Mapper | Problema |
 | :--- | :--- | :--- |
-| **Aladdin** | Mapper 4 (MMC3) | Crash. Requiere A12 edge detection. |
-| **Shinobi** | Mapper 4 (MMC3) | Crash. |
+| **Aladdin** | Mapper 4 (MMC3) | Pantalla gris. Requiere emulación muy precisa. |
+| **Shinobi** | Mapper 4 (MMC3) | Crash. Problema de inicialización. |
 
 ## Mappers Soportados
 
@@ -39,5 +39,5 @@
 | 3 | CNROM | ✅ |
 | 4 | MMC3 | ✅ |
 | 7 | AxROM | ✅ |
-| 9 | MMC2 | 🟡 (nuevo) |
+| 9 | MMC2 | 🟡 |
 | 69 | FME-7 | ✅ |

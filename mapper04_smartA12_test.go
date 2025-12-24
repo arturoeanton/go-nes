@@ -74,8 +74,7 @@ func TestA12FilterIgnoresRapidTransitions(t *testing.T) {
 	// El filtro debería ignorar transiciones rápidas
 	// A12 debe estar bajo por ~16 PPU dots antes de que un flanco cuenta
 
-	// NOTA: Este test fallará hasta que implementemos el filtro correctamente
-	t.Skip("A12 filtering not yet implemented - skipping until Phase 2")
+	// El filtro ya está implementado en mapper04.go
 
 	m.Write(0xC000, 5) // Latch = 5
 	m.Write(0xC001, 0) // Reload
@@ -95,8 +94,6 @@ func TestA12FilterIgnoresRapidTransitions(t *testing.T) {
 
 // TestA12FilterAllowsSlowTransitions verifica flancos válidos
 func TestA12FilterAllowsSlowTransitions(t *testing.T) {
-	t.Skip("A12 filtering not yet implemented - skipping until Phase 2")
-
 	m := NewMapper4(16, 32)
 
 	m.Write(0xC000, 2) // Latch = 2 (dispara después de 2 flancos válidos)
@@ -198,7 +195,7 @@ func TestRegressionTinyToonStyle(t *testing.T) {
 
 // TestAladdinIRQPattern documenta el patrón de IRQ que usa Aladdin
 func TestAladdinIRQPattern(t *testing.T) {
-	t.Skip("Test for future A12 implementation - Aladdin doesn't work yet")
+	// Test para documentar el patrón esperado de Aladdin
 
 	// NOTA: Este test se habilitará cuando implementemos A12 correctamente
 	//
@@ -211,7 +208,7 @@ func TestAladdinIRQPattern(t *testing.T) {
 
 // TestShinobiIRQPattern documenta el patrón de IRQ que usa Shinobi
 func TestShinobiIRQPattern(t *testing.T) {
-	t.Skip("Test for future A12 implementation - Shinobi doesn't work yet")
+	// Test para documentar el patrón esperado de Shinobi
 
 	// NOTA: Similar a Aladdin
 	// Shinobi crashea con PC oscilando entre $0000-$0001
